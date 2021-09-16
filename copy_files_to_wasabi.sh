@@ -1,1 +1,1 @@
-aws s3 cp s3://sentiment/  sentiment --recursive --endpoint-url https://s3.wasabisys.com
+aws s3 cp sentimentres/results/ s3://offensive/results/  --recursive --endpoint-url https://s3.wasabisys.com

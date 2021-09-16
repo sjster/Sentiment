@@ -14,6 +14,11 @@ import os
 import fastparquet as fp
 import pickle
 import shutil
+import time
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+	tf.config.experimental.set_memory_growth(gpu, True)
 
 task='offensive'
 MODEL = f"cardiffnlp/twitter-roberta-base-{task}"
@@ -34,11 +39,14 @@ model = TFAutoModelForSequenceClassification.from_pretrained(MODEL)
 
 s3_path = "sentiment/*.parquet"
 all_paths_from_s3 = glob.glob(s3_path)
+print(all_paths_from_s3)
 for file in all_paths_from_s3:
+  t0 = time.time()
   df = pd.read_parquet(file)
   print(file)
   tokenized = tokenizer(list(df['text']), padding=True, return_tensors='tf')
   res = model.predict(tokenized['input_ids'], batch_size=100, use_multiprocessing=True)
+  print("Prediction time ", time.time() - t0)
   output_file = 'sentimentres/results/' + file.split('/')[1].split('.')[0] + '.npy'
   print(output_file)
   with open(output_file, 'wb') as f:

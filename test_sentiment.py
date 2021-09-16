@@ -32,8 +32,10 @@ model = TFAutoModelForSequenceClassification.from_pretrained(MODEL)
 df = pd.read_json('PeteForAmerica.1574004110.txt', lines=True)
 data = list(df['full_text'])
 print(len(data))
-tokenized = tokenizer(data, padding=True, return_tensors='tf')
-res = model.predict(tokenized['input_ids'], batch_size=100, use_multiprocessing=True)
+inp = data[0][0:40]
+print(inp, type(inp))
+tokenized = tokenizer([inp], padding=True, return_tensors='tf')
+res = model.predict(tokenized['input_ids'], batch_size=25, use_multiprocessing=True)
 print(softmax(res['logits'], axis=1))
 print(labels)
 
