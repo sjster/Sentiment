@@ -103,7 +103,7 @@ for file in all_files:
 
 	print("Prediction time ", time.time() - t0)
 	gpu_usage()
-	filename = file.split('/')[1]
+	filename = file.split('/')[1].split('.')[0]
 	output_file = 'sentimentres/results/' + filename + '.npy'
 	with open(output_file, 'wb') as f:
 		f.write(pickle.dumps(out))

@@ -107,26 +107,34 @@ def rank_inference(rank, world_size, args, use_cuda):
     tokenizer = AutoTokenizer.from_pretrained(MODEL)
 
     all_files = args['files']
+    # This will add duplicate samples to the end to make the load even, thereby reevaluating certain files 
+    dsampler = torch.utils.data.DistributedSampler(all_files, num_replicas=world_size, rank=rank)
+    
     num_files = len(all_files)
-    work_size = int(num_files / world_size)
-    if(rank == 0):
-        index_start = 0
-        index_end = work_size
-    elif(rank == 1):
-        index_start = work_size
-        index_end = num_files
-    files = args['files'][index_start: index_end]
+    #work_size = int(num_files / world_size)
+    #if(rank == 0):
+    #    index_start = 0
+    #    index_end = work_size
+    #elif(rank == 1):
+    #    index_start = work_size
+    #    index_end = num_files
+    #files = args['files'][index_start: index_end]
 
+    files = np.array(all_files)
+    files = files[list(dsampler)]
     print('Rank from inference and files --  ',rank,files)   
     
-    tstart = time.time()
     for file in files:
+        if(os.path.exists(file) == False):
+             continue	
         data = TextLoader(file=file, tokenizer=tokenizer)
         train_dataloader = DataLoader(data, batch_size=50, shuffle=False)
         gpu_usage()
         out = []
         t0 = time.time()
-        for i,data in enumerate(train_dataloader):
+        # This is neceddary for evaluation with torch barrier, otherwise the processes hang
+        with torch.no_grad():
+          for i,data in enumerate(train_dataloader):
             #gpu_usage()
             input = data.to(rank)
             #print(i,input.shape, rank)
@@ -137,15 +145,16 @@ def rank_inference(rank, world_size, args, use_cuda):
         #print(res['logits'].cpu().data, rank)
         print("Prediction time ", rank, time.time() - t0)
         gpu_usage()
-        filename = file.split('/')[1]
+        filename = file.split('/')[1].split('.')[0]
         output_file = 'sentimentres/results/' + filename + '.npy'
         with open(output_file, 'wb') as f:
             f.write(pickle.dumps(out))
 
         shutil.move(file, 'sentimentres/processed/' + file.split('/')[1])
-
+    
+    torch.cuda.synchronize()
+    torch.distributed.barrier()
     cleanup()
-    print("Total execution time ",time.time() - t0)
 
 
 if __name__ == "__main__":
@@ -155,6 +164,7 @@ if __name__ == "__main__":
 	args = {}
 	all_files = get_all_files()
 	args['files'] = all_files
-	print(args)
+	tstart = time.time()
 	mp.spawn(rank_inference, args=(world_size, args, use_cuda), nprocs=world_size, join=True)
+	print("Total execution time ",time.time() - tstart)
 
