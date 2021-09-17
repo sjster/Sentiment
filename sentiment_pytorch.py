@@ -89,7 +89,7 @@ all_files = get_all_files()
 
 for file in all_files:
 	data = TextLoader(file=file, tokenizer=tokenizer)
-	train_dataloader = DataLoader(data, batch_size=200, shuffle=True)
+	train_dataloader = DataLoader(data, batch_size=50, shuffle=False)
 	gpu_usage()
 	out = []
 	t0 = time.time()
@@ -99,7 +99,7 @@ for file in all_files:
 		#print(i,input.shape)
 		res = model(input)
 		#print(res['logits'].shape)
-		#out.append(res['logits'].cpu().data)
+		out.append(res['logits'].cpu().data)
 
 	print("Prediction time ", time.time() - t0)
 	gpu_usage()

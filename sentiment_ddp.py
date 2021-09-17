@@ -118,10 +118,11 @@ def rank_inference(rank, world_size, args, use_cuda):
     files = args['files'][index_start: index_end]
 
     print('Rank from inference and files --  ',rank,files)   
-
+    
+    tstart = time.time()
     for file in files:
         data = TextLoader(file=file, tokenizer=tokenizer)
-        train_dataloader = DataLoader(data, batch_size=50, shuffle=True)
+        train_dataloader = DataLoader(data, batch_size=50, shuffle=False)
         gpu_usage()
         out = []
         t0 = time.time()
@@ -133,7 +134,7 @@ def rank_inference(rank, world_size, args, use_cuda):
             #print(res['logits'].shape)
             out.append(res['logits'].cpu().data)
 
-        print(res['logits'].cpu().data, rank)
+        #print(res['logits'].cpu().data, rank)
         print("Prediction time ", rank, time.time() - t0)
         gpu_usage()
         filename = file.split('/')[1]
@@ -144,6 +145,7 @@ def rank_inference(rank, world_size, args, use_cuda):
         shutil.move(file, 'sentimentres/processed/' + file.split('/')[1])
 
     cleanup()
+    print("Total execution time ",time.time() - t0)
 
 
 if __name__ == "__main__":
